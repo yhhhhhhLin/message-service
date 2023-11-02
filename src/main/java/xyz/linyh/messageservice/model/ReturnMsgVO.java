@@ -27,5 +27,9 @@ public class ReturnMsgVO {
     /**
      * 未读的消息数量
      */
-    private Integer UnreadMessage;
+    private Integer unreadMessage;
+
+    public ReturnMsgVO(Integer unreadMessage){
+        this.unreadMessage = unreadMessage;
+    }
 }

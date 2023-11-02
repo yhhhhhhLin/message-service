@@ -30,7 +30,7 @@ public class TestController {
         ids.add(7L);
         ids.add(8L);
         ids.add(9L);
-        messageService.broadcastAllUsers(ids,"系统消息发送测试1");
+        messageService.saveBroadcast(ids,"系统消息发送测试1");
     }
 
     @GetMapping("/test3")

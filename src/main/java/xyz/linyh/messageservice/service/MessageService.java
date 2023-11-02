@@ -29,9 +29,11 @@ public interface MessageService {
     public List<Message> findAll();
 
     /**
-     * 发送系统统一消息
+     * 将系统发送的消息保存到数据库
+     * @param ids
+     * @param message
      */
-    public void broadcastAllUsers(List<Long> ids, String message);
+    public void saveBroadcast(List<Long> ids, String message);
 
     /**
      * 获取
@@ -40,4 +42,11 @@ public interface MessageService {
      * @return
      */
     public ReturnMsgVO getMsg(Long userId, Long sendUserId);
+
+    /**
+     * 获取某个用户的所有未读消息
+     * @param id
+     * @return
+     */
+    Integer getNoReadCount(Long id);
 }

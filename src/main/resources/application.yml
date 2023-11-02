@@ -21,3 +21,6 @@ logging:
           mongodb:
             core:
               MongoTemplate: DEBUG
+
+
+#启动mongo的docker命令: docker run -itd --name mongo -p 27017:27017 mongo

@@ -21,12 +21,12 @@ public class Message implements Serializable {
     /**
      * 接收人id
      */
-    private Long userId;
+    private Long toUserId;
 
     /**
      * 发送人id（如果id为0，那么就是系统消息）
      */
-    private Long sendUserId;
+    private Long fromUserId;
 
     /**
      * 消息具体内容

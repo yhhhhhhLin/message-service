@@ -79,7 +79,7 @@ public class MessageServiceImpl implements MessageService {
      * @param ids
      */
     @Override
-    public void broadcastAllUsers(List<Long> ids,String message) {
+    public void saveBroadcast(List<Long> ids, String message) {
         ArrayList<Message> messages = new ArrayList<>();
         for (Long id : ids) {
             Message msg = createMsg(id, message);
@@ -123,7 +123,6 @@ public class MessageServiceImpl implements MessageService {
         returnMsgVO.setUnreadMessage(noReadCount);
         returnMsgVO.setSendUserId(sendUserId);
 
-//        todo 消息已读
         if(messageList.size()>=noReadCount){
             messageList = messageList.subList(messageList.size() - noReadCount, messageList.size());
         }
@@ -136,19 +135,38 @@ public class MessageServiceImpl implements MessageService {
 //        扫描然后批量更新isRead
         Query query1 = new Query(Criteria.where("id").in(ids));
         Update update = new Update().set("isRead",1);
-//        todo
         mongoTemplate.updateMulti(query1,update,Message.class);
         return returnMsgVO;
     }
 
+    /**
+     * 获取某个用户的所有未读消息
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Integer getNoReadCount(Long id) {
+        Query query = new Query(Criteria.where("user_id").is(id));
+        List<Message> messages = mongoTemplate.find(query, Message.class);
+//        获取所有未读的数量
+        Integer count = 0;
+        for (Message message : messages) {
+            if(message.getIsRead()==0){
+                count++;
+            }
+        }
+        return count;
+    }
+
     private Message createMsg(Long id,String message){
         Message messageEntity = new Message();
-        messageEntity.setUserId(id);
+        messageEntity.setToUserId(id);
         messageEntity.setMsgContent(message);
         messageEntity.setCreateTime(new Date());
         messageEntity.setUpdateTime(new Date());
         messageEntity.setIsRead((short) 0);
-        messageEntity.setSendUserId(0L);
+        messageEntity.setFromUserId(0L);
         return messageEntity;
     }
 }
