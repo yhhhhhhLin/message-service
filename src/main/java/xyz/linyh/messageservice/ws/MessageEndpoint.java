@@ -12,6 +12,7 @@ import xyz.linyh.messageservice.model.ReturnMsgVO;
 import xyz.linyh.messageservice.service.MessageService;
 import xyz.linyh.messageservice.utils.ResultUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
@@ -25,12 +26,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author lin
  */
 @ServerEndpoint(value = "/message",configurator = GetHttpSessionConfig.class)
-@Service
 @Slf4j
+@Controller
 public class MessageEndpoint {
 
-    @Autowired
+    @Resource
     private MessageService messageService;
+
     /**
      * 在线人数
      */
@@ -155,5 +157,6 @@ public class MessageEndpoint {
     public void onClose(){
         Long userId = (Long) httpSession.getAttribute("id");
         onlinePeople.remove(userId);
+        log.info("有用户退出");
     }
 }

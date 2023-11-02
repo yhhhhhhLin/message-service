@@ -39,9 +39,85 @@
                 }
             }
         },
-        methods: {
 
+        created() {
+            this.init();
+        },
+        methods: {
+            async init() {
+                await axios.get("/test").then(res => {
+                    console.log(res)
+                });
+
+                //创建webSocket对象
+                ws = new WebSocket("ws://localhost:9091/message");
+                //给ws绑定事件
+                ws.onopen = this.onopen;
+                //接收到服务端推送的消息后触发
+                ws.onmessage = this.onMessage;
+
+                ws.onclose = this.onClose;
+            },
+            showChat(name) {
+                this.toName = name;
+                //清除聊天区的数据
+                let history = sessionStorage.getItem(this.toName);
+                if (!history) {
+                    this.historyMessage = [];
+                } else {
+                    this.historyMessage = JSON.parse(history);
+                }
+                //展示聊天对话框
+                this.isShowChat = true;
+                //显示“正在和谁聊天”
+                this.chatMes = true;
+            },
+            submit() {
+                this.sendMessage.toName = this.toName;
+                this.historyMessage.push(JSON.parse(JSON.stringify(this.sendMessage)));
+                sessionStorage.setItem(this.toName, JSON.stringify(this.historyMessage));
+                // 利用ws发送消息
+                ws.send(JSON.stringify(this.sendMessage));
+                发送到后端
+                this.sendMessage.message = "";
+            },
+            onOpen() {
+                this.isOnline = true;
+            },
+            onClose() {
+                this.isOnline = false;
+            },
+            onMessage(evt) {
+                //获取服务端推送过来的消息
+                var dataStr = evt.data;
+                //将dataStr 转换为json对象
+                var res = JSON.parse(dataStr);
+
+                //判断是否是系统消息
+                if(res.system) {
+                    //系统消息  好友列表展示
+                    var names = res.message;
+                    this.friendsList = [];
+                    this.systemMessages = [];
+                    for (let i = 0; i < names.length; i++) {
+                        if(names[i] != this.username) {
+                            this.friendsList.push(names[i]);
+                            this.systemMessages.push(names[i]);
+                        }
+                    }
+                }else {
+                    //非系统消息
+                    var history = sessionStorage.getItem(res.fromName);
+                    if (!history) {
+                        this.historyMessage = [res];
+                    } else {
+                        this.historyMessage.push(res);
+                    }
+                    sessionStorage.setItem(res.fromName, JSON.stringify(this.historyMessage));
+                }
+            }
         }
+
     });
 </script>
 </body>
