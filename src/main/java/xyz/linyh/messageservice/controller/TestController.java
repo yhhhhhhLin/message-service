@@ -18,9 +18,7 @@ public class TestController {
 
     @GetMapping("/test")
     public void test(){
-        Message message = new Message("1",3L,0L,"消息4", (short) 0,new Date(),new Date());
-
-        messageService.addOne(message);
+        messageService.addOne(0L,4L,"消息4");
     }
 
     @GetMapping("/test2")

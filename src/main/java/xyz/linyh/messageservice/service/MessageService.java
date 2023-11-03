@@ -6,7 +6,7 @@ import xyz.linyh.messageservice.model.ReturnMsgVO;
 import java.util.List;
 
 public interface MessageService {
-    public void addOne(Message message);
+    public void addOne(Long fromId,Long toId,String message);
 
     /**
      * 删
@@ -49,4 +49,20 @@ public interface MessageService {
      * @return
      */
     Integer getNoReadCount(Long id);
+
+    /**
+     * 用户读取和某个用户的消息(更新未读数量)
+     * @param readUserId
+     * @param sendUserId
+     * @param readCount
+     * @return
+     */
+    Boolean readMessage(Long readUserId, Long sendUserId, Integer readCount);
+
+    /**
+     * 获取某个用户的所有信息(顺序!)
+     * @param id
+     * @return
+     */
+    List<ReturnMsgVO> getAllMsg(Long id);
 }

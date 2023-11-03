@@ -32,8 +32,9 @@ public class MessageServiceImpl implements MessageService {
      * @param message
      */
     @Override
-    public void addOne(Message message) {
-        mongoTemplate.save(message);
+    public void addOne(Long fromId,Long toId,String message) {
+        Message msg = createMsg(toId, fromId, message);
+        mongoTemplate.save(msg);
     }
 
     /**
@@ -82,7 +83,7 @@ public class MessageServiceImpl implements MessageService {
     public void saveBroadcast(List<Long> ids, String message) {
         ArrayList<Message> messages = new ArrayList<>();
         for (Long id : ids) {
-            Message msg = createMsg(id, message);
+            Message msg = createMsg(id, 0L,message);
             messages.add(msg);
         }
 //        批量插入,BulkMode.UNORDERED:表示并行处理，遇到错误时能继续执行不影响其他操作；
@@ -159,14 +160,41 @@ public class MessageServiceImpl implements MessageService {
         return count;
     }
 
-    private Message createMsg(Long id,String message){
+    /**
+     * 用户读取和某个用户的消息(更新未读数量)
+     * @param readUserId
+     * @param sendUserId
+     * @param readCount
+     * @return
+     */
+    @Override
+    public Boolean readMessage(Long readUserId, Long sendUserId, Integer readCount) {
+        Query query = new Query(Criteria.where("fromUserId").is(sendUserId).and("toUserId").is(readUserId));
+//        todo 先全部改为已读
+        Update update = new Update().set("isRead",1);
+        mongoTemplate.updateMulti(query,update,Message.class);
+        return true;
+    }
+
+    /**
+     * todo 获取某个用户的所有信息(顺序!)
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public List<ReturnMsgVO> getAllMsg(Long id) {
+        return null;
+    }
+
+    private Message createMsg(Long toUserId,Long fromUserId,String message){
         Message messageEntity = new Message();
-        messageEntity.setToUserId(id);
+        messageEntity.setToUserId(toUserId);
         messageEntity.setMsgContent(message);
         messageEntity.setCreateTime(new Date());
         messageEntity.setUpdateTime(new Date());
         messageEntity.setIsRead((short) 0);
-        messageEntity.setFromUserId(0L);
+        messageEntity.setFromUserId(fromUserId);
         return messageEntity;
     }
 }

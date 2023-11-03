@@ -24,7 +24,13 @@
 
 
 <body class="background">
+<div id="app">
 <h1>展示</h1>
+{{unReadMsgCount}}
+<input v-model="unReadMsgCount" placeholder="Type something"/>
+
+</div>
+
 <script src="js/vue.js"></script>
 <script src="js/axios-0.18.0.js"></script>
 <script>
@@ -36,7 +42,8 @@
                 user:{
                     username:"",
                     password:""
-                }
+                },
+                unReadMsgCount: 0
             }
         },
 
@@ -57,21 +64,13 @@
                 ws.onmessage = this.onMessage;
 
                 ws.onclose = this.onClose;
+                // 发送请求获取最新的未读消息
+                await axios.get("/msg/unreadcount").then(res=>{
+                    console.log(res.data.data.unReadMsgCount)
+                    this.unReadMsgCount = res.data.data.unreadMessage;
+                })
             },
-            showChat(name) {
-                this.toName = name;
-                //清除聊天区的数据
-                let history = sessionStorage.getItem(this.toName);
-                if (!history) {
-                    this.historyMessage = [];
-                } else {
-                    this.historyMessage = JSON.parse(history);
-                }
-                //展示聊天对话框
-                this.isShowChat = true;
-                //显示“正在和谁聊天”
-                this.chatMes = true;
-            },
+
             submit() {
                 this.sendMessage.toName = this.toName;
                 this.historyMessage.push(JSON.parse(JSON.stringify(this.sendMessage)));
@@ -88,6 +87,7 @@
                 this.isOnline = false;
             },
             onMessage(evt) {
+                console.log("有新消息发送到达")
                 //获取服务端推送过来的消息
                 var dataStr = evt.data;
                 //将dataStr 转换为json对象
