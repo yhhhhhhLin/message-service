@@ -44,8 +44,9 @@ public class MessageController {
     @PostMapping("/broadcast")
     public BaseResponse<ReturnMsgVO> BroadcastAllMsg(@RequestBody MessageVO messageVO){
 
-//        参数校验 todo
-
+        if(messageVO==null || messageVO.getMessage()==null || messageVO.getToUserId()==null || messageVO.getFromUserId()==null){
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+        }
 //        将数据发送给在线用户
         messageEndpoint.broadcastAllUser(messageVO.getMessage(),messageVO.getFromUserId());
 //        获取所有数据保存到数据库 todo 获取所有用户id rpc调用
@@ -59,8 +60,9 @@ public class MessageController {
     @PostMapping("/send")
     public BaseResponse sendMessage(@RequestBody MessageVO messageVO){
 
-//        todo 参数校验
-
+        if(messageVO==null || messageVO.getMessage()==null || messageVO.getToUserId()==null || messageVO.getFromUserId()==null){
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+        }
 //        判断用户是否在线
         Session online = messageEndpoint.isOnline(messageVO.getToUserId());
         if(online!=null){
@@ -79,7 +81,10 @@ public class MessageController {
      */
     @PostMapping("/read")
     public BaseResponse readMessage(@RequestBody ReadMessageVO readMessageVO){
-//       todo 参数校验
+
+        if(readMessageVO==null || readMessageVO.getReadUserId()==null || readMessageVO.getSendUserId()==null){
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+        }
 
         Boolean b = messageService.readMessage(readMessageVO.getReadUserId(),readMessageVO.getSendUserId(),readMessageVO.getReadCount());
 
@@ -92,17 +97,17 @@ public class MessageController {
     }
 
     /**
-     * 获取这个用户的所有消息
+     * 获取这个用户的所有未读消息（前端获取后需要把数据保存到storage中，后面如果用户在线了，发送消息，那么就把数据继续更新）
      * @return
      */
-    @GetMapping("/getmsg")
-    public BaseResponse<List<ReturnMsgVO>> getMsg(HttpServletRequest request){
+    @GetMapping("/getunreadmsg")
+    public BaseResponse<List<List<Message>>> getAllMsg(HttpServletRequest request){
 
-        Long id = (Long) request.getAttribute("id");
+        Long id = (Long) request.getSession().getAttribute("id");
 //        todo
-        List<ReturnMsgVO> returnMsgVOS = messageService.getAllMsg(id);
+        List<List<Message>> allMsg = messageService.getAllMsg(id);
 
-        return ResultUtils.success(returnMsgVOS);
+        return ResultUtils.success(allMsg);
     }
 
     /**
@@ -113,11 +118,22 @@ public class MessageController {
     @GetMapping("/getUsermsg")
     public BaseResponse<ReturnMsgVO> getUserMessage(Long fromUserId,HttpServletRequest request){
 
+        if(fromUserId==null){
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+        }
+
         Long userId = (Long) request.getAttribute("id");
 
         ReturnMsgVO msg = messageService.getMsg(userId, fromUserId);
 
         return ResultUtils.success(msg);
     }
+
+    @PostMapping("/saveunread")
+    public BaseResponse saveNoReadMsg(HttpServletRequest request,@RequestBody List<List<Message>> messages){
+
+        return null;
+    }
+
 
 }

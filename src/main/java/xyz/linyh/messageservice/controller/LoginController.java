@@ -17,9 +17,9 @@ public class LoginController {
     @PostMapping("/login")
     public BaseResponse login(@RequestBody User user, HttpServletRequest request) {
         Long id = null;
-        if("张三".equals(user.getPassword())){
+        if("张三".equals(user.getUsername())){
             id = 1L;
-        }else if("李四".equals(user.getPassword())){
+        }else if("李四".equals(user.getUsername())){
             id = 2L;
         }else {
             id = 3L;

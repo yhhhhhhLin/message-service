@@ -1,20 +1,22 @@
 package xyz.linyh.messageservice.service.impl;
 
+import com.mongodb.BasicDBObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import xyz.linyh.messageservice.entitys.Message;
+import xyz.linyh.messageservice.model.GroupMessagesResultVO;
 import xyz.linyh.messageservice.model.ReturnMsgVO;
 import xyz.linyh.messageservice.service.MessageService;
 import org.springframework.data.mongodb.core.query.Query;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -177,14 +179,77 @@ public class MessageServiceImpl implements MessageService {
     }
 
     /**
-     * todo 获取某个用户的所有信息(顺序!)
-     *
+     *按照时间查询这个用户和其他用户之间的聊天未读消息和数量
      * @param id
      * @return
      */
     @Override
-    public List<ReturnMsgVO> getAllMsg(Long id) {
-        return null;
+    public List<List<Message>> getAllMsg(Long id) {
+//     查询所有未读消息，然后按照发送人进行分组，然后对分组后消息里面的消息按照时间排序，晚发的排在后面，
+
+//        1. 将所有未读消息找出来，然后按照时间进行排序
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("toUserId").is(id).and("isRead").is(0)),
+                Aggregation.group("fromUserId").push("$$ROOT").as("groupMessages"),
+                Aggregation.unwind("groupMessages"),
+                Aggregation.sort(Sort.Direction.ASC, "groupMessages.createTime")
+        );
+
+        AggregationResults<GroupMessagesResultVO> aggregate = mongoTemplate.aggregate(aggregation, Message.class, GroupMessagesResultVO.class);
+
+        List<GroupMessagesResultVO> mappedResults = aggregate.getMappedResults();
+        if(mappedResults==null && mappedResults.size()==0){
+            return null;
+        }
+        List<List<Message>> groupList =  groupByToList(mappedResults);
+//        System.out.println(groupList);
+//        再将数据按照最新发送消息进行排序
+        groupList = sortByNewestMsg(groupList);
+        return groupList;
+    }
+
+    /**
+     *将所有数据按照最新消息进行排序
+     * @param groupList
+     * @return
+     */
+    private List<List<Message>> sortByNewestMsg(List<List<Message>> groupList) {
+        // 使用Comparator.comparingLong()按照最新消息的时间戳进行排序
+        Collections.sort(groupList, Comparator.comparingLong(list -> list.get(list.size() - 1).getCreateTime().getTime()));
+        Collections.reverse(groupList);
+        return groupList;
+    }
+
+    /**
+     * 将获取到的所有信息进行分组
+     * @param mappedResults
+     * @return
+     */
+    private List<List<Message>> groupByToList(List<GroupMessagesResultVO> mappedResults) {
+
+        List<List<Message>> groupList = new ArrayList<>();
+        List<Message> listOne = new ArrayList<>();
+        Long preFromUserId = null;
+
+        for(int i = 0;i<mappedResults.size();i++){
+//            如果这个的发送人和上一个一样的话，那么就存到ListOne中
+            Message message = mappedResults.get(i).getGroupMessages();
+            if(preFromUserId!=null && preFromUserId.equals((message.getFromUserId()))){
+                listOne.add(message);
+            }else{
+//            如果前面的preToUserId为空那么就更新proToUser
+//            如果preToUserId和不一样的话，那就把前面的存到groupList中，清空listOne，然后存一个到listOne中，再重新更新preToUserId
+                if(preFromUserId!=null){
+                    groupList.add(listOne);
+                    listOne = new ArrayList<>();
+                }
+                listOne.add(message);
+                preFromUserId=message.getFromUserId();
+            }
+
+        }
+        groupList.add(listOne);
+        return groupList;
     }
 
     private Message createMsg(Long toUserId,Long fromUserId,String message){

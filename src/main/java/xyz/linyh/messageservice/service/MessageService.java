@@ -64,5 +64,5 @@ public interface MessageService {
      * @param id
      * @return
      */
-    List<ReturnMsgVO> getAllMsg(Long id);
+    List<List<Message>> getAllMsg(Long id);
 }

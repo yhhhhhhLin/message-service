@@ -69,6 +69,10 @@
                     console.log(res)
                     //判断登陆是否成功
                     if(res.data) {
+                        // 所有未读消息，然后存放到storage中
+                        axios.get("/msg/getmsg").then(res=>{
+                            console.log(res)
+                        })
                         location.href = "msg.html"
                     } else {
                         this.errMessage = res.data.message;
