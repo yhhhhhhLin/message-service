@@ -4,10 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import xyz.linyh.messageservice.constant.ErrorCode;
 import xyz.linyh.messageservice.entitys.Message;
-import xyz.linyh.messageservice.model.BaseResponse;
-import xyz.linyh.messageservice.model.MessageVO;
-import xyz.linyh.messageservice.model.ReadMessageVO;
-import xyz.linyh.messageservice.model.ReturnMsgVO;
+import xyz.linyh.messageservice.model.*;
 import xyz.linyh.messageservice.service.MessageService;
 import xyz.linyh.messageservice.utils.ResultUtils;
 import xyz.linyh.messageservice.ws.MessageEndpoint;
@@ -129,11 +126,54 @@ public class MessageController {
         return ResultUtils.success(msg);
     }
 
-    @PostMapping("/saveunread")
-    public BaseResponse saveNoReadMsg(HttpServletRequest request,@RequestBody List<List<Message>> messages){
+    /**
+     * 获取所有消息会话，返回用户用户名称，用户头像，最新的一条消息，未读消息数量
+     * @param page
+     * @param pageSize
+     * @return
+     */
+    @GetMapping("/hisrotySession")
+    public BaseResponse getHistorySession(Integer page,Integer pageSize,HttpServletRequest request){
 
         return null;
     }
+
+    /**
+     * 获取和某个用户之间的聊天记录，按照时间顺序返回所有查询出来的聊天（有发送时间，消息内容,谁发送的和对应id信息）
+     * @param historyDTO
+     * @return
+     */
+    @GetMapping("/history")
+    public BaseResponse getHistory(@RequestBody GetMsgHistoryDTO historyDTO,HttpServletRequest request){
+
+        return null;
+    }
+
+    /**
+     * 将和某个用户之间的未读消息全部清除
+     * @param fromUserId
+     * @param request
+     * @return
+     */
+    @GetMapping("/clean")
+    public BaseResponse cleanMsg(Long fromUserId,HttpServletRequest request){
+
+
+        return null;
+    }
+
+    /**
+     * 一键已读
+     * @return
+     */
+    @PostMapping("/clean")
+    public BaseResponse cleanAllMsg(HttpServletRequest request){
+
+        return null;
+    }
+
+
+
 
 
 }
