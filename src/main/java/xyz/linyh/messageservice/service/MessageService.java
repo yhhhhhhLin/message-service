@@ -1,12 +1,14 @@
 package xyz.linyh.messageservice.service;
 
 import xyz.linyh.messageservice.entitys.Message;
+import xyz.linyh.messageservice.entitys.MessageSession;
+import xyz.linyh.messageservice.model.MessageSessionAndContent;
 import xyz.linyh.messageservice.model.ReturnMsgVO;
 
 import java.util.List;
 
 public interface MessageService {
-    public void addOne(Long fromId,Long toId,String message);
+    public void addOne(Long sessionId,String message);
 
     /**
      * 删
@@ -65,4 +67,12 @@ public interface MessageService {
      * @return
      */
     List<List<Message>> getAllMsg(Long id);
+
+    /**
+     * 找出用户最新聊天对话和对应的用户未读消息数量和最新未读消息
+     * @param id
+     * @param page
+     * @param pageSize
+     */
+    List<MessageSessionAndContent> getHistorySession(Long id, Integer page, Integer pageSize);
 }

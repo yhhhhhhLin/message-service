@@ -73,8 +73,8 @@ public class MessageEndpoint {
     public void onMessage(String message){
         Message msg = JSON.parseObject(message, Message.class);
 
-//        系统关播消息，
-        if(msg.getFromUserId()==0){
+//        系统广播消息，
+        if(msg.getSessionId()==-1L){
 //            将消息保存到数据库中
 //            todo 获取所有用户id
             List<Long> ids = new ArrayList<>();

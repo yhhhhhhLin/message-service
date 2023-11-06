@@ -18,15 +18,12 @@ public class Message implements Serializable {
 
     @Id
     private String id;
-    /**
-     * 接收人id
-     */
-    private Long toUserId;
 
     /**
-     * 发送人id（如果id为0，那么就是系统消息）
+     * 会话id(由发送id和接收者id组成) 如果sessionId为-1 ，那么就是系统广播消息
      */
-    private Long fromUserId;
+    private Long sessionId;
+
 
     /**
      * 消息具体内容

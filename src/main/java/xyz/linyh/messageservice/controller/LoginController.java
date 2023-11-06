@@ -1,6 +1,5 @@
 package xyz.linyh.messageservice.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +23,9 @@ public class LoginController {
         }else {
             id = 3L;
         }
+
+
+
         HttpSession session = request.getSession();
         session.setAttribute("id", id);
         return ResultUtils.success(id);

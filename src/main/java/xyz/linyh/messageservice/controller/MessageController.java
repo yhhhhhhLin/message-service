@@ -67,7 +67,7 @@ public class MessageController {
             messageEndpoint.sendMessageToUser(messageVO.getFromUserId(),messageVO.getToUserId(),messageVO.getMessage());
         }
 //        保存到数据库
-        messageService.addOne(messageVO.getFromUserId(),messageVO.getToUserId(),messageVO.getMessage());
+//        messageService.addOne(messageVO.getFromUserId(),messageVO.getToUserId(),messageVO.getMessage());
         return ResultUtils.success(null);
     }
 
@@ -134,8 +134,14 @@ public class MessageController {
      */
     @GetMapping("/hisrotySession")
     public BaseResponse getHistorySession(Integer page,Integer pageSize,HttpServletRequest request){
+//        todo 参数校验
 
-        return null;
+        Long id = (Long) request.getSession().getAttribute("id");
+
+//        按照时间倒叙查找对应的最新聊天，找到对应的最新聊天未读消息数量和对应的用户名字
+        List<MessageSessionAndContent> historySession = messageService.getHistorySession(id, page, pageSize);
+
+        return ResultUtils.success(historySession);
     }
 
     /**

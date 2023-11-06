@@ -1,6 +1,6 @@
 package xyz.linyh.messageservice.service.impl;
+import java.util.Date;
 
-import com.mongodb.BasicDBObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -11,7 +11,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import xyz.linyh.messageservice.entitys.Message;
+import xyz.linyh.messageservice.entitys.MessageSession;
 import xyz.linyh.messageservice.model.GroupMessagesResultVO;
+import xyz.linyh.messageservice.model.MessageSessionAndContent;
 import xyz.linyh.messageservice.model.ReturnMsgVO;
 import xyz.linyh.messageservice.service.MessageService;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,8 +36,8 @@ public class MessageServiceImpl implements MessageService {
      * @param message
      */
     @Override
-    public void addOne(Long fromId,Long toId,String message) {
-        Message msg = createMsg(toId, fromId, message);
+    public void addOne(Long sessionId,String message) {
+        Message msg = createMsg(sessionId, message);
         mongoTemplate.save(msg);
     }
 
@@ -83,13 +85,16 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public void saveBroadcast(List<Long> ids, String message) {
+//        根据用户id获取对应的session
+        Query query = new Query(Criteria.where("fromUserId").is(0).and("toUserId").in(ids));
+        List<MessageSession> messageSessions = mongoTemplate.find(query, MessageSession.class);
+
         ArrayList<Message> messages = new ArrayList<>();
-        for (Long id : ids) {
-            Message msg = createMsg(id, 0L,message);
+        for (MessageSession messageSession: messageSessions) {
+            Message msg = createMsg( messageSession.getId(),message);
             messages.add(msg);
         }
 //        批量插入,BulkMode.UNORDERED:表示并行处理，遇到错误时能继续执行不影响其他操作；
-
         mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED,Message.class).insert(messages).execute();
     }
 
@@ -205,7 +210,60 @@ public class MessageServiceImpl implements MessageService {
 //        System.out.println(groupList);
 //        再将数据按照最新发送消息进行排序
         groupList = sortByNewestMsg(groupList);
+
         return groupList;
+    }
+
+    /**
+     * 找出用户最新聊天对话和对应的用户未读消息数量和最新未读消息
+     *
+     * @param id
+     * @param page
+     * @param pageSize
+     */
+    @Override
+    public List<MessageSessionAndContent> getHistorySession(Long id, Integer page, Integer pageSize) {
+        Query query = new Query().with(Sort.by(Sort.Direction.DESC));
+
+        List<MessageSession> messageSessions = mongoTemplate.find(query, MessageSession.class);
+
+//        一个一个会话去找对应的信息 todo 优化查询
+        List<MessageSessionAndContent> messageSessionAndContents = new ArrayList<>();
+        for(MessageSession messageSession :messageSessions){
+            Long sessionId = messageSession.getId();
+            Query query2 = new Query(Criteria.where("sessionId").is(sessionId)).with(Sort.by(Sort.Direction.ASC));
+            List<Message> messages = mongoTemplate.find(query2, Message.class);
+
+            MessageSessionAndContent messageSessionAndContent = new MessageSessionAndContent();
+            messageSessionAndContent.setMessageContent(messages.get(messages.size()-1).getMsgContent());
+            messageSessionAndContent.setUnReadCount(getSessionUnReadCount(messages));
+            messageSessionAndContent.setId(messageSession.getId());
+            messageSessionAndContent.setToUserId(messageSession.getToUserId());
+            messageSessionAndContent.setFromUserId(messageSession.getFromUserId());
+            messageSessionAndContent.setSetTop(messageSession.getSetTop());
+            messageSessionAndContent.setCreateTime(messageSession.getCreateTime());
+            messageSessionAndContent.setUpdateTime(messageSession.getUpdateTime());
+            messageSessionAndContents.add(messageSessionAndContent);
+        }
+
+        return messageSessionAndContents;
+    }
+
+    /**
+     * 获取某个会话里面的未读消息数量
+     * @param messages
+     * @return
+     */
+    private Integer getSessionUnReadCount(List<Message> messages) {
+
+        Integer count = 0;
+        for(Message m:messages){
+            if (m.getIsRead()==0) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     /**
@@ -227,39 +285,39 @@ public class MessageServiceImpl implements MessageService {
      */
     private List<List<Message>> groupByToList(List<GroupMessagesResultVO> mappedResults) {
 
-        List<List<Message>> groupList = new ArrayList<>();
-        List<Message> listOne = new ArrayList<>();
-        Long preFromUserId = null;
-
-        for(int i = 0;i<mappedResults.size();i++){
-//            如果这个的发送人和上一个一样的话，那么就存到ListOne中
-            Message message = mappedResults.get(i).getGroupMessages();
-            if(preFromUserId!=null && preFromUserId.equals((message.getFromUserId()))){
-                listOne.add(message);
-            }else{
-//            如果前面的preToUserId为空那么就更新proToUser
-//            如果preToUserId和不一样的话，那就把前面的存到groupList中，清空listOne，然后存一个到listOne中，再重新更新preToUserId
-                if(preFromUserId!=null){
-                    groupList.add(listOne);
-                    listOne = new ArrayList<>();
-                }
-                listOne.add(message);
-                preFromUserId=message.getFromUserId();
-            }
-
-        }
-        groupList.add(listOne);
-        return groupList;
+//        List<List<Message>> groupList = new ArrayList<>();
+//        List<Message> listOne = new ArrayList<>();
+//        Long preFromUserId = null;
+//
+//        for(int i = 0;i<mappedResults.size();i++){
+////            如果这个的发送人和上一个一样的话，那么就存到ListOne中
+//            Message message = mappedResults.get(i).getGroupMessages();
+//            if(preFromUserId!=null && preFromUserId.equals((message.getFromUserId()))){
+//                listOne.add(message);
+//            }else{
+////            如果前面的preToUserId为空那么就更新proToUser
+////            如果preToUserId和不一样的话，那就把前面的存到groupList中，清空listOne，然后存一个到listOne中，再重新更新preToUserId
+//                if(preFromUserId!=null){
+//                    groupList.add(listOne);
+//                    listOne = new ArrayList<>();
+//                }
+//                listOne.add(message);
+//                preFromUserId=message.getFromUserId();
+//            }
+//
+//        }
+//        groupList.add(listOne);
+        return null;
     }
 
-    private Message createMsg(Long toUserId,Long fromUserId,String message){
+    private Message createMsg(Long sessionId,String message){
         Message messageEntity = new Message();
-        messageEntity.setToUserId(toUserId);
+        messageEntity.setSessionId(sessionId);
         messageEntity.setMsgContent(message);
+        messageEntity.setIsRead((short)0);
         messageEntity.setCreateTime(new Date());
         messageEntity.setUpdateTime(new Date());
-        messageEntity.setIsRead((short) 0);
-        messageEntity.setFromUserId(fromUserId);
+
         return messageEntity;
     }
 }
