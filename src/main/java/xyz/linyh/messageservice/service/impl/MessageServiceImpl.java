@@ -1,6 +1,8 @@
 package xyz.linyh.messageservice.service.impl;
+import java.util.Date;
 
 import com.mongodb.BasicDBObject;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -10,9 +12,12 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import xyz.linyh.messageservice.entitys.Contact;
 import xyz.linyh.messageservice.entitys.Message;
+import xyz.linyh.messageservice.entitys.contactConfig;
 import xyz.linyh.messageservice.model.GroupMessagesResultVO;
 import xyz.linyh.messageservice.model.ReturnMsgVO;
+import xyz.linyh.messageservice.model.vo.ContactsVO;
 import xyz.linyh.messageservice.service.MessageService;
 import org.springframework.data.mongodb.core.query.Query;
 
@@ -29,18 +34,10 @@ public class MessageServiceImpl implements MessageService {
     @Autowired
     private MongoTemplate mongoTemplate;
 
-    /**
-     * 增
-     * @param message
-     */
-    @Override
-    public void addOne(Long fromId,Long toId,String message) {
-        Message msg = createMsg(toId, fromId, message);
-        mongoTemplate.save(msg);
-    }
 
     /**
      * 删
+     *
      * @param msgId
      */
     @Override
@@ -53,6 +50,7 @@ public class MessageServiceImpl implements MessageService {
 
     /**
      * 改
+     *
      * @param message
      */
     @Override
@@ -63,6 +61,7 @@ public class MessageServiceImpl implements MessageService {
 
     /**
      * 查
+     *
      * @param studentId
      * @return
      */
@@ -76,152 +75,134 @@ public class MessageServiceImpl implements MessageService {
         return mongoTemplate.findAll(Message.class);
     }
 
+
     /**
-     * 发送系统统一消息
+     * 根据时间获取用户的聊天会话列表
      *
-     * @param ids
+     * @param userId      用户id
+     * @param pageSize    页面大小
+     * @param currentPage 当前页码
+     * @return 查询结果
      */
     @Override
-    public void saveBroadcast(List<Long> ids, String message) {
-        ArrayList<Message> messages = new ArrayList<>();
-        for (Long id : ids) {
-            Message msg = createMsg(id, 0L,message);
-            messages.add(msg);
+    public List<ContactsVO> getSessionByPage(Long userId, Integer pageSize, Integer currentPage) {
+//        1. 参数校验
+        if (pageSize == null) {
+            pageSize = 20;
         }
-//        批量插入,BulkMode.UNORDERED:表示并行处理，遇到错误时能继续执行不影响其他操作；
+        if (currentPage == null) {
+            currentPage = 1;
+        }
+        Query query2 = new Query(
+                Criteria.where("userId").is(userId).and("status").is(0)).with(Sort.by(Sort.Order.desc("createTime")))
+                .limit(pageSize).skip((long) (currentPage - 1) * pageSize);
+        List<contactConfig> contactConfigs = mongoTemplate.find(query2, contactConfig.class);
 
-        mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED,Message.class).insert(messages).execute();
+        List<ContactsVO> contactsVOS = new ArrayList<>();
+        for (contactConfig contactConfig : contactConfigs) {
+            Query query = new Query(Criteria.where("id").is(contactConfig.getContactId()));
+
+            List<Contact> contacts = mongoTemplate.find(query, Contact.class);
+            if (contacts != null && contacts.size() > 0) {
+                Contact contact = contacts.get(0);
+                Long userId1 = contact.getUserId1();
+                Long userId2 = contact.getUserId2();
+                Long fromUserId = null;
+                if(userId.equals(userId1)){
+                    fromUserId = userId2;
+                }else {
+                    fromUserId = userId1;
+                }
+//                todo 查询用户服务,然后copy到对应vo里面
+                ContactsVO contactsVO = new ContactsVO();
+                BeanUtils.copyProperties(contacts.get(0), contactsVO);
+//                userId1里面保存对面用户id
+                contactsVO.setUserId1(fromUserId);
+                contactsVO.setSetTop(contactConfig.getSetTop());
+//                查找未读消息数量
+//                按照顺序查找出，所有未读消息数量
+                Query query1 = new Query(
+                        Criteria.where("fromUserId").is(fromUserId).and("status").is(0).and("isRead").is(0)).with(Sort.by(Sort.Order.desc("createTime"))
+                );
+
+                long count = mongoTemplate.count(query1, Message.class);
+                contactsVO.setUnReadCount(count);
+                contactsVOS.add(contactsVO);
+            }
+
+        }
+
+        return contactsVOS;
+
     }
 
     /**
-     * 获取用户和用户之间消息和未读消息数量
-     * 还可以获取用户和系统消息之间的消息和未读数量
+     * 发送消息，判断是否有对应会话，如果没有，那么就创建对应会话然后保存session
      *
      * @param userId
-     * @param sendUserId 如果为0，那么就是系统通知
-     * @return
+     * @param toUserId
+     * @param test
      */
     @Override
-    public ReturnMsgVO getMsg(Long userId, Long sendUserId) {
-//        获取这个用户对应的所有消息
+    public void sendMsg(Long userId, Long toUserId, String test) {
+//        判断是否对应会话
         Query query = new Query(
-//                等于条件
-                Criteria.where("userId").is(userId)
-                        .and("sendUserId").is(sendUserId))
-//                正序排序
-                .with(Sort.by(Sort.Order.asc("createTime")));
-        List<Message> messageList = mongoTemplate.find(query, Message.class);
-        if(messageList==null || messageList.size()==0){
-            return null;
+                new Criteria().orOperator(Criteria.where("userId1").is(userId).and("userId2").is(toUserId), Criteria.where("userId1").is(toUserId).and("userId2").is(userId)));
+        List<Contact> contacts = mongoTemplate.find(query, Contact.class);
+//        如果没有那么创对应会话
+        if (contacts == null || contacts.size() == 0) {
+            Contact contact = new Contact();
+            contact.setUserId1(userId);
+            contact.setUserId2(2L);
+            contact.setActiveTime(System.currentTimeMillis());
+            contact.setLastMsgId("");
+            contact.setSetTop(0);
+            contact.setCreateTime(System.currentTimeMillis());
+            contact.setUpdateTime(System.currentTimeMillis());
+            Contact save = mongoTemplate.save(contact);
+            contacts.add(save);
+
+//            还需要创建对应contactConfig
+            contactConfig contactConfig = new contactConfig();
+            contactConfig.setUserId(userId);
+            contactConfig.setContactId(contact.getId());
+            contactConfig.setStatus(0);
+            contactConfig.setSetTop(0);
+            contactConfig.setCreateTime(System.currentTimeMillis());
+            contactConfig.setUpdateTime(System.currentTimeMillis());
+            mongoTemplate.save(contactConfig);
+
+
         }
+//        然后根据会话id发送消息
+        Message message = new Message();
+        message.setContactId(contacts.get(0).getId());
+        message.setFromUserId(userId);
+        message.setContent(test);
+        message.setReplyMsgId("");
+        message.setStatus(0);
+        message.setGapCount(-1);
+        message.setIsRead(0);
+        message.setType(1);
+        message.setExtra("");
+        message.setCreateTime(System.currentTimeMillis());
+        message.setUpdateTime(System.currentTimeMillis());
+        mongoTemplate.save(message);
+//        更新前面contact的lastMsgId todo
+        Query query2 = new Query(Criteria.where("id").is(contacts.get(0).getId()));
+        Update update1 = new Update().set("lastMsgId", message.getId());
+        mongoTemplate.updateFirst(query2, update1, Contact.class);
+//        如果有新发送消息，那么需要修改config里面对应的删除字段
+        Query query1 = new Query(Criteria.where("contactId").is(contacts.get(0).getId()));
+        Update update = new Update().set("status", 0);
+        mongoTemplate.updateFirst(query1, update, contactConfig.class);
 
-//        循环获取未读条数和封装到对应类，todo 因为查找后是按照时间顺序，可以优化为找到有读取的了，就可以不用继续找了
-        Integer noReadCount = 0;
-        for (Message message : messageList) {
-            if(message.getIsRead()==0) {noReadCount++;}
-        }
-
-        ReturnMsgVO returnMsgVO = new ReturnMsgVO();
-        returnMsgVO.setMessages(messageList);
-        returnMsgVO.setUnreadMessage(noReadCount);
-        returnMsgVO.setSendUserId(sendUserId);
-
-        if(messageList.size()>=noReadCount){
-            messageList = messageList.subList(messageList.size() - noReadCount, messageList.size());
-        }
-
-        List<String> ids = new ArrayList<>();
-        for (Message message : messageList) {
-            ids.add(message.getId());
-        }
-
-//        扫描然后批量更新isRead
-        Query query1 = new Query(Criteria.where("id").in(ids));
-        Update update = new Update().set("isRead",1);
-        mongoTemplate.updateMulti(query1,update,Message.class);
-        return returnMsgVO;
     }
 
-    /**
-     * 获取某个用户的所有未读消息
-     *
-     * @param id
-     * @return
-     */
-    @Override
-    public Integer getNoReadCount(Long id) {
-        Query query = new Query(Criteria.where("user_id").is(id));
-        List<Message> messages = mongoTemplate.find(query, Message.class);
-//        获取所有未读的数量
-        Integer count = 0;
-        for (Message message : messages) {
-            if(message.getIsRead()==0){
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * 用户读取和某个用户的消息(更新未读数量)
-     * @param readUserId
-     * @param sendUserId
-     * @param readCount
-     * @return
-     */
-    @Override
-    public Boolean readMessage(Long readUserId, Long sendUserId, Integer readCount) {
-        Query query = new Query(Criteria.where("fromUserId").is(sendUserId).and("toUserId").is(readUserId));
-//        todo 先全部改为已读
-        Update update = new Update().set("isRead",1);
-        mongoTemplate.updateMulti(query,update,Message.class);
-        return true;
-    }
-
-    /**
-     *按照时间查询这个用户和其他用户之间的聊天未读消息和数量
-     * @param id
-     * @return
-     */
-    @Override
-    public List<List<Message>> getAllMsg(Long id) {
-//     查询所有未读消息，然后按照发送人进行分组，然后对分组后消息里面的消息按照时间排序，晚发的排在后面，
-
-//        1. 将所有未读消息找出来，然后按照时间进行排序
-        Aggregation aggregation = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("toUserId").is(id).and("isRead").is(0)),
-                Aggregation.group("fromUserId").push("$$ROOT").as("groupMessages"),
-                Aggregation.unwind("groupMessages"),
-                Aggregation.sort(Sort.Direction.ASC, "groupMessages.createTime")
-        );
-
-        AggregationResults<GroupMessagesResultVO> aggregate = mongoTemplate.aggregate(aggregation, Message.class, GroupMessagesResultVO.class);
-
-        List<GroupMessagesResultVO> mappedResults = aggregate.getMappedResults();
-        if(mappedResults==null && mappedResults.size()==0){
-            return null;
-        }
-        List<List<Message>> groupList =  groupByToList(mappedResults);
-//        System.out.println(groupList);
-//        再将数据按照最新发送消息进行排序
-        groupList = sortByNewestMsg(groupList);
-        return groupList;
-    }
-
-    /**
-     *将所有数据按照最新消息进行排序
-     * @param groupList
-     * @return
-     */
-    private List<List<Message>> sortByNewestMsg(List<List<Message>> groupList) {
-        // 使用Comparator.comparingLong()按照最新消息的时间戳进行排序
-        Collections.sort(groupList, Comparator.comparingLong(list -> list.get(list.size() - 1).getCreateTime().getTime()));
-        Collections.reverse(groupList);
-        return groupList;
-    }
 
     /**
      * 将获取到的所有信息进行分组
+     *
      * @param mappedResults
      * @return
      */
@@ -231,20 +212,20 @@ public class MessageServiceImpl implements MessageService {
         List<Message> listOne = new ArrayList<>();
         Long preFromUserId = null;
 
-        for(int i = 0;i<mappedResults.size();i++){
+        for (int i = 0; i < mappedResults.size(); i++) {
 //            如果这个的发送人和上一个一样的话，那么就存到ListOne中
             Message message = mappedResults.get(i).getGroupMessages();
-            if(preFromUserId!=null && preFromUserId.equals((message.getFromUserId()))){
+            if (preFromUserId != null && preFromUserId.equals((message.getFromUserId()))) {
                 listOne.add(message);
-            }else{
+            } else {
 //            如果前面的preToUserId为空那么就更新proToUser
 //            如果preToUserId和不一样的话，那就把前面的存到groupList中，清空listOne，然后存一个到listOne中，再重新更新preToUserId
-                if(preFromUserId!=null){
+                if (preFromUserId != null) {
                     groupList.add(listOne);
                     listOne = new ArrayList<>();
                 }
                 listOne.add(message);
-                preFromUserId=message.getFromUserId();
+                preFromUserId = message.getFromUserId();
             }
 
         }
@@ -252,14 +233,4 @@ public class MessageServiceImpl implements MessageService {
         return groupList;
     }
 
-    private Message createMsg(Long toUserId,Long fromUserId,String message){
-        Message messageEntity = new Message();
-        messageEntity.setToUserId(toUserId);
-        messageEntity.setMsgContent(message);
-        messageEntity.setCreateTime(new Date());
-        messageEntity.setUpdateTime(new Date());
-        messageEntity.setIsRead((short) 0);
-        messageEntity.setFromUserId(fromUserId);
-        return messageEntity;
-    }
 }

@@ -16,7 +16,7 @@ CREATE TABLE `message`  (
   `contact_id` bigint(20) NOT NULL COMMENT '会话表id',
   `from_uid` bigint(20) NOT NULL COMMENT '消息发送者uid',
   `content` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '发送的消息内容',
-  `reply_msg_id` bigint(20) NULL DEFAULT NULL COMMENT '回复的消息内容(引用)',
+  `reply_msg_id` bigint(20) NULL DEFAULT NULL COMMENT '回复的消息内Id',
   `status` int(11) NOT NULL COMMENT '消息状态 0正常 1删除',
   `gap_count` int(11) NULL DEFAULT NULL COMMENT '与回复的消息间隔多少条,保存前需要判断上面对方发了多少条，然后更新这个数据',
   `type` int(11) NULL DEFAULT 1 COMMENT '消息类型 1正常文本 2.撤回消息',
@@ -51,3 +51,5 @@ CREATE TABLE `contact_config` (
   `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '修改时间',
   PRIMARY KEY (`id`) USING BTREE
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户对应会话配置表';
+
+

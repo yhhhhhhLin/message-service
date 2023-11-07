@@ -21,7 +21,7 @@ public class Contact implements Serializable {
      * id
      */
     @Id
-    private Long id;
+    private String id;
 
     /**
      * 用户1对应id
@@ -37,7 +37,7 @@ public class Contact implements Serializable {
     /**
      * 最后活跃时间
      */
-    private Date activeTime;
+    private Long activeTime;
 
     /**
      * 最新消息id
@@ -45,17 +45,17 @@ public class Contact implements Serializable {
     private String lastMsgId;
 
     /**
-     * 是否置顶
+     * 是否置顶(0为否 1为是)
      */
     private Integer setTop;
 
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Long createTime;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Long updateTime;
 }

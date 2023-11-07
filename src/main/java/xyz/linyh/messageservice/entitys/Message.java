@@ -21,7 +21,7 @@ public class Message implements Serializable {
     /**
      * 会话表id
      */
-    private Long contactId;
+    private String contactId;
 
     /**
      * 发送人id
@@ -34,9 +34,9 @@ public class Message implements Serializable {
     private String content;
 
     /**
-     * 回复的消息内容
+     * 回复的消息内容Id(0就是没有)
      */
-    private Short replyMsgId;
+    private String replyMsgId;
 
     /**
      * 消息状态(0为正常，1为删除)
@@ -44,9 +44,14 @@ public class Message implements Serializable {
     private Integer status;
 
     /**
-     * 与回复的消息之间查多少天
+     * 与上一个回复之间查多少条消息
      */
-    private Date gapCount;
+    private Integer gapCount;
+
+    /**
+     * 是否已读，0为未读 1为已读
+     */
+    private Integer isRead;
 
     /**
      * 消息类型（1为正常消息，0为撤回消息）
@@ -61,11 +66,11 @@ public class Message implements Serializable {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Long createTime;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Long updateTime;
 
 }

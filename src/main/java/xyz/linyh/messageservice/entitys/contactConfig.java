@@ -1,19 +1,23 @@
 package xyz.linyh.messageservice.entitys;
 
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
 import java.util.Date;
 
 @Data
-public class contact_config {
+@NoArgsConstructor
+@AllArgsConstructor
+public class contactConfig {
 
     /**
      * id
      */
     @Id
-    private Long id;
+    private String id;
 
     /**
      * 用户id
@@ -23,7 +27,7 @@ public class contact_config {
     /**
      * 对应会话id
      */
-    private Long contactId;
+    private String contactId;
 
     /**
      * 状态（0为正常 1为删除）
@@ -35,7 +39,8 @@ public class contact_config {
      */
     private Integer setTop;
 
-    private Date createTime;
 
-    private Date updateTime;
+    private Long createTime;
+
+    private Long updateTime;
 }
