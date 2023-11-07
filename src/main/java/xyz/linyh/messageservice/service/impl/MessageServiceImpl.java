@@ -122,7 +122,10 @@ public class MessageServiceImpl implements MessageService {
 //                查找未读消息数量
 //                按照顺序查找出，所有未读消息数量
                 Query query1 = new Query(
-                        Criteria.where("fromUserId").is(fromUserId).and("status").is(0).and("isRead").is(0)).with(Sort.by(Sort.Order.desc("createTime"))
+                        Criteria.where("fromUserId").is(fromUserId)
+                                .and("status").is(0).and("isRead").is(0)
+                                .and("contactId").is(contacts.get(0).getId())).with(Sort.by(Sort.Order.desc("createTime")
+                        )
                 );
 
                 long count = mongoTemplate.count(query1, Message.class);
@@ -145,6 +148,7 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public void sendMsg(Long userId, Long toUserId, String test) {
+//        todo 还需要通过ws判断用户是否在线，如果在线就直接发送消息给用户
 //        判断是否对应会话
         Query query = new Query(
                 new Criteria().orOperator(Criteria.where("userId1").is(userId).and("userId2").is(toUserId), Criteria.where("userId1").is(toUserId).and("userId2").is(userId)));
