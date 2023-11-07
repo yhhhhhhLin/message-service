@@ -54,6 +54,12 @@ public class MessageController {
         return ResultUtils.success(null);
     }
 
+    /**
+     * 发送消息，将消息保存到session和对应的消息表里面
+     * @param messageVO
+     * @return
+     */
+
     @PostMapping("/send")
     public BaseResponse sendMessage(@RequestBody MessageVO messageVO){
 
@@ -62,12 +68,13 @@ public class MessageController {
         }
 //        判断用户是否在线
         Session online = messageEndpoint.isOnline(messageVO.getToUserId());
+
         if(online!=null){
 //            发送给在线用户
             messageEndpoint.sendMessageToUser(messageVO.getFromUserId(),messageVO.getToUserId(),messageVO.getMessage());
         }
 //        保存到数据库
-//        messageService.addOne(messageVO.getFromUserId(),messageVO.getToUserId(),messageVO.getMessage());
+        messageService.addOne(messageVO.getSessionId(), messageVO.getMessage());
         return ResultUtils.success(null);
     }
 

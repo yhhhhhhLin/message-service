@@ -80,6 +80,7 @@ public class MessageEndpoint {
             List<Long> ids = new ArrayList<>();
 //            messageService.saveBroadcast(ids,msg.getMsgContent());
 //           将增加未读消息这件事发送给前端,前端如果在消息查看这个页面,那么就可以重新获取消息,如果不是那么就会增加消息的未读数量
+
 //            broadcastAllUser(msg.getMsgContent(), (Long) httpSession.getAttribute("id"));
         }
 

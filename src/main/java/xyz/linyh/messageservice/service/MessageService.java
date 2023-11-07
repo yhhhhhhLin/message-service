@@ -8,7 +8,7 @@ import xyz.linyh.messageservice.model.ReturnMsgVO;
 import java.util.List;
 
 public interface MessageService {
-    public void addOne(Long sessionId,String message);
+    public void addOne(Long sessionId,Long userId,String message);
 
     /**
      * 删

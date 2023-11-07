@@ -1,6 +1,7 @@
 package xyz.linyh.messageservice.service.impl;
 import java.util.Date;
 
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -36,7 +37,12 @@ public class MessageServiceImpl implements MessageService {
      * @param message
      */
     @Override
-    public void addOne(Long sessionId,String message) {
+    public void addOne(Long sessionId,Long userId,String message) {
+//        判断对应的session是否是这个用户创建的
+        List<MessageSession> messageSessions = mongoTemplate.find(new Query(Criteria.where("id").is(sessionId)), MessageSession.class);
+        if (!userId.equals(messageSessions.get(0).getToUserId())) {
+//            需要存储两边的session和两边的对应消息 -* -
+        }
         Message msg = createMsg(sessionId, message);
         mongoTemplate.save(msg);
     }
@@ -244,6 +250,7 @@ public class MessageServiceImpl implements MessageService {
             messageSessionAndContent.setCreateTime(messageSession.getCreateTime());
             messageSessionAndContent.setUpdateTime(messageSession.getUpdateTime());
             messageSessionAndContents.add(messageSessionAndContent);
+
         }
 
         return messageSessionAndContents;
