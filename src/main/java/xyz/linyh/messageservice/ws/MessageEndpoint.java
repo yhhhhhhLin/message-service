@@ -38,6 +38,8 @@ public class MessageEndpoint {
 
     private HttpSession httpSession;
 
+    private Long id;
+
 
     /**
      * 连接操作
@@ -46,12 +48,22 @@ public class MessageEndpoint {
 
     @OnOpen
     public void onOpen(Session session, EndpointConfig config){
-        this.httpSession = (HttpSession)config.getUserProperties().get("httpSession");
+//        this.httpSession = (HttpSession)config.getUserProperties().get("httpSession");
+//        获取token
+        Object token = config.getUserProperties().get("token");
+        if(token==null){
+            return;
+        }
+//        简易版本
 
+        if(token=="12345"){
+//            建立连接
+            id  = 1L;
+        }
+        id = 2L;
 //        获取用户唯一表示
-        Long id = (Long) httpSession.getAttribute("id");
-//        存储到map中
         ONLINE_PEOPLE.put(id,session);
+//        存储到map中
 
         log.info("有用户登录在线成功");
     }
@@ -73,8 +85,8 @@ public class MessageEndpoint {
      */
     @OnClose
     public void onClose(){
-        Long userId = (Long) httpSession.getAttribute("id");
-        ONLINE_PEOPLE.remove(userId);
+//        Long userId = (Long) httpSession.getAttribute("id");
+        ONLINE_PEOPLE.remove(id);
         log.info("有用户退出");
     }
 }

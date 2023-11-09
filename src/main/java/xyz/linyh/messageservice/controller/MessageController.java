@@ -1,6 +1,7 @@
 package xyz.linyh.messageservice.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.annotation.Id;
 import org.springframework.web.bind.annotation.*;
 import xyz.linyh.messageservice.entitys.Contact;
 import xyz.linyh.messageservice.model.*;
@@ -56,7 +57,12 @@ public class MessageController {
         return null;
     }
 
-    public BaseResponse sendMsg(){
+   @GetMapping("/getUnreadMsg")
+    public BaseResponse getUnreadMsg(){
+       ThreadLocal<Long> longThreadLocal = new ThreadLocal<>();
+//       通过上面获取对应id
+       Long id = 1L;
+       Long unreadCount = messageService.getUnreadCount(id);
         return null;
     }
 }

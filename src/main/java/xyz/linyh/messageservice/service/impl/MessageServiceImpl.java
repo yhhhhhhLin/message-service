@@ -203,6 +203,19 @@ public class MessageServiceImpl implements MessageService {
 
     }
 
+    /**
+     * 获取某个用户的未读消息数量
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Long getUnreadCount(Long id) {
+        new Query(Criteria.where(""))
+        mongoTemplate.count()
+        return null;
+    }
+
 
     /**
      * 将获取到的所有信息进行分组

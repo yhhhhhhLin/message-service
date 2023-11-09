@@ -83,4 +83,11 @@ public interface MessageService {
      * @param test
      */
     void sendMsg(Long userId, Long toUserId, String test);
+
+    /**
+     * 获取某个用户的未读消息数量
+     * @param id
+     * @return
+     */
+    Long getUnreadCount(Long id);
 }
